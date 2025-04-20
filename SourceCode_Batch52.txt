@@ -1,0 +1,581 @@
+# Main program:
+clc
+clear all
+close all
+warning off all
+system_dependent('DirChangeHandleWarn','never');
+addpath(genpath('.'));
+drugnames={'Phenytoin ','Carbamazepine ','SodiumValproate ','phenobartone ',...
+   'Clobazam ','Levetiracetam ','Phenobarbitone ','folvite ','Carbomaizine ','Lamotrigine '};
+tic
+[~,~,data]=xlsread('dataset1.xlsx','Sheet2','T:T','%d');
+dru_name1=data(:,1);
+% out=[];
+% h=waitbar(0,'process...');
+% for i=3:length(dru_name1)
+% waitbar(i/length(dru_name1))
+% dru=dru_name1(i,:);
+% dru_name=dru{:};
+% out=vertcat(out,dru_name); 
+% end
+% close(h)
+% time=toc
+load('drug_name.mat')
+load('out.mat')
+out1=out;
+for i=1:length(out)
+  a=out1(i,:);  
+  a1=isnan(a);
+  if a1==0
+  a2=a;
+  end
+  if a1==1
+  out1(i,:)=a2;
+  end
+end
+data=[age];
+for i1=1:inf
+[C, I, iter] = Kmeans(data,2);
+ch=I(end,:);
+data1=[drug_name,out1];
+fit=[];
+ab=[];
+for i=1:10
+ data2=data1(:,1);
+ a=find(data2==i);
+ a1=data1(a,:);
+ size(a);
+[m n]=size(a1);
+b=a1(:,2);
+b1=find(b==0);
+b2=find(b==1);
+[m1 n1]=size(b1);
+[m2 n2]=size(b2);
+perc=(m1/m)*100; 
+perc1=(m2/m)*100;
+string=drugnames(:,i);
+str={'Fit Free percentage is : '};
+str1={'Abnormal percentage is : '};
+disp(strcat(string,str,num2str(perc))) 
+disp(strcat(string,str1,num2str(perc1)))
+ab=vertcat(ab,perc1);
+fit=vertcat(fit,perc);
+end
+
+grpn={'Fit Free','Abnormal'};
+ tabfig= figure('name','Comparision table','numbertitle','off','Position',[200 200 850 300]);
+            dat = [fit(:) ab(:)];
+            uitable('Parent',tabfig,'Data',dat,'ColumnName',grpn,'RowName',drugnames,'ColumnWidth',{100},'Position',[20 20 800 250]);
+
+          fit=fit';  
+             fi=[0 0 0 0 0 0 0 0 0 0 ;fit;0 0 0 0 0 0 0 0 0 0];
+figure('name','Fit free comparison','numbertitle','off')
+bar(fi)
+axis([1,3,10,105])
+set(gca,'xticklabel',{'','',''})
+xlabel('Drugs')
+ylabel('Values in %')
+legend('Phenytoin ','Carbamazepine ','SodiumValproate ','phenobartone ',...
+   'Clobazam ','Levetiracetam ','Phenobarbitone ','folvite ','Carbomaizine ','Lamotrigine ','location','best')
+
+            ab=ab';  
+             fi=[0 0 0 0 0 0 0 0 0 0 ;ab;0 0 0 0 0 0 0 0 0 0];
+figure('name','Abnornal comparison','numbertitle','off')
+bar(fi)
+axis([1,3,10,105])
+set(gca,'xticklabel',{'','',''})
+xlabel('Drugs')
+ylabel('Values in %')
+legend('Phenytoin ','Carbamazepine ','SodiumValproate ','phenobartone ',...
+   'Clobazam ','Levetiracetam ','Phenobarbitone ','folvite ','Carbomaizine ','Lamotrigine ','location','best')
+
+#K-means program:
+%% (C) Copyright 2012. All rights reserved. Sotiris L Karavarsamis.
+%  Contact the author at <sokar@aiia.csd.auth.gr>
+% 
+%  This is my implementation on the k-means algorithm straight from the
+%  pseudocode description of the very same algorithm on the book
+%  'Introduction to Information Retrieval' by Manning, Schutze
+%  and Raghavan.
+
+function [C, I, iter] = Kmeans(X, K)
+maxIter =50;
+% number of vectors in X
+[vectors_num, dim] = size(X);
+
+% compute a random permutation of all input vectors
+R = randperm(K);
+
+% construct indicator matrix (each entry corresponds to the cluster
+% of each point in X)
+I = zeros(vectors_num, 1);
+
+% construct centers matrix
+C = zeros(K, dim);
+
+% take the first K points in the random permutation as the center sead
+for k=1:K
+    C(k,:) = X(R(k),:);
+end
+
+% iteration count
+iter = 0;
+
+% compute new clustering while the cumulative intracluster error in kept
+% below the maximum allowed error, or the iterative process has not
+% exceeded the maximum number of iterations permitted
+while 1
+    % find closest point
+    for n=1:vectors_num
+        % find closest center to current input point
+        minIdx = 1;
+        minVal = norm(X(n,:) - C(minIdx,:), 1);
+        for j=1:K
+            dist = norm(C(j,:) - X(n,:), 1);
+            if dist < minVal
+                minIdx = j;
+                minVal = dist;
+            end
+        end
+        
+        % assign point to the closter center
+        I(n) = minIdx;
+    end
+    
+    % compute centers
+    for k=1:K
+        C(k, :) = sum(X(find(I == k), :));
+        C(k, :) = C(k, :) / length(find(I == k));
+    end
+    
+    % compute RSS error
+%     RSS_error = 0;
+%     for idx=1:vectors_num
+%         RSS_error = RSS_error + norm(X(idx, :) - C(I(idx),:), 2);
+%     end
+%     RSS_error = RSS_error / vectors_num;
+%     
+    % increment iteration
+    iter = iter + 1;
+    
+    % check stopping criteria
+%     if 1/RSS_error < TOL
+%         break;
+%     end
+%     
+    if iter > maxIter
+        iter = iter - 1;
+        break;
+    end
+end
+I;
+%disp(['k-means took ' int2str(iter) ' steps to converge']);
+
+#Main Program Pregnancy and Abortion Analysis
+clc
+clear all
+warning off all
+while(1)
+    ip=menu('Epilepsy During Pregnancy','Good Pregnancy','Abortion','Exit');
+if ip==3
+    break
+end
+if ip==1
+    main
+end
+if ip==2
+    main1
+end
+end
+
+
+
+
+#Pregnancy Analysis
+clc
+%clear all
+warning off all
+close all
+while(1)
+    ip=menu('Pregnancy Analysis','Delivery Type Prediction with Age',...
+        'Delivery Type Prediction with Scan Results','Born baby status prediction with drug usage',...
+        'Baby After 1 year status prediction with drug usage',...
+        'Baby After 5 year status prediction with drug usage','Monotheraphy AED','Exit');
+    if ip==7
+        
+        break
+    end
+    if ip==1
+system_dependent('DirChangeHandleWarn','never');
+addpath(genpath('.'))
+[~,~,age]=xlsread('pregnancy1.xlsx','D1:D151');
+[~,~,Delivery_status]=xlsread('pregnancy1.xlsx','I1:I151');
+age1=[];
+for i=2:length(age)
+    a=age(i,:);
+    a1=a{:};
+    age1=vertcat(age1,a1);
+end
+Delivery_status1=[];
+for i=2:length(Delivery_status)
+    a=Delivery_status(i,:);
+    a1=a{:};
+    Delivery_status1=vertcat(Delivery_status1,a1);
+end
+data=[age1,Delivery_status1];
+for i1=1:inf
+[C, I, iter] = Kmeans(data,2);
+ch=I(end,:);
+if ch==1
+I=I;
+data1=data(:,1);
+for i=1:2
+    data1=data(:,1);
+    a=find(I==i);
+    a1=data1(a,:);
+   
+    b=find(a1>=30);
+    b1=find(data1>=30);
+    a1(b)=[];
+    data1(b1)=[];
+    [m n]=size(b);
+    [m1 n1]=size(b1);
+    perc1=(m/m1)*100;
+    %%%%%%
+    b=find(a1>=25);
+    b1=find(data1>=25);
+    a1(b)=[];
+    data1(b1)=[];
+    [m n]=size(b);
+    [m1 n1]=size(b1);
+    perc2=(m/m1)*100;
+    %%%%%%%%%%%%%
+    b=find(a1>=20);
+    b1=find(data1>=20);
+    a1(b)=[];
+    data1(b1)=[];
+    [m n]=size(b);
+    [m1 n1]=size(b1);
+    perc3=(m/m1)*100;
+    %%%%%%%%%%%%%%%%%%%%%%%
+    b=find(a1>=15);
+    b1=find(data1>=15);
+    a1(b)=[];
+    data1(b1)=[];
+    [m n]=size(b);
+    [m1 n1]=size(b1);
+    perc4=(m/m1)*100;
+    
+    if i==1
+    perc_norm=[perc4,perc3,perc2,perc1];
+    else
+        perc_cea=[perc4,perc3,perc2,perc1];
+    end
+
+end
+disp(strcat('Normal delivery Age limit :  15 - 20 ---  ',num2str(perc_norm(:,1))))
+disp(strcat('Normal delivery Age limit :  20 - 25 ---  ',num2str(perc_norm(:,2))))
+disp(strcat('Normal delivery Age limit :  25 - 30 ---  ',num2str(perc_norm(:,3))))
+disp(strcat('Normal delivery Age limit :  30 - 35 ---  ',num2str(perc_norm(:,4))))
+%%%%%%%%%%%%%%%
+disp(strcat('cesarian delivery Age limit :  15 - 20 ---  ',num2str(perc_cea(:,1))))
+disp(strcat('cesarian delivery Age limit :  20 - 25 ---  ',num2str(perc_cea(:,2))))
+disp(strcat('cesarian delivery Age limit :  25 - 30 ---  ',num2str(perc_cea(:,3))))
+disp(strcat('cesarian delivery Age limit :  30 - 35 ---  ',num2str(perc_cea(:,4))))
+
+ages={'Age limit :  15 - 20','Age limit :  20 - 25','Age limit :  25 - 30','Age limit :  30 - 35'};
+grpn={'NORMAL','CEASAERIN'};
+ tabfig= figure('name','Delivery Analysis wth Age','numbertitle','off','Position',[200 200 850 300]);
+            dat = [perc_norm(:) perc_cea(:)];
+uitable('Parent',tabfig,'Data',dat,'ColumnName',grpn,'RowName',ages,'ColumnWidth',{100},'Position',[20 20 800 250]);
+    break
+end
+end
+    end
+            %%
+ if ip==2
+ [~,~,EEG]=xlsread('pregnancy1.xlsx','Q1:Q151');
+[~,~,MRI]=xlsread('pregnancy1.xlsx','R1:R151');
+[~,~,Delivery_status]=xlsread('pregnancy1.xlsx','I1:I151');
+
+EEG1=[];
+for i=2:length(EEG)
+    a=EEG(i,:);
+    a1=a{:};
+    EEG1=vertcat(EEG1,a1);
+end
+%
+MRI1=[];
+for i=2:length(MRI)
+    a=MRI(i,:);
+    a1=a{:};
+    MRI1=vertcat(MRI1,a1);
+end
+Delivery_status1=[];
+for i=2:length(Delivery_status)
+    a=Delivery_status(i,:);
+    a1=a{:};
+    Delivery_status1=vertcat(Delivery_status1,a1);
+end
+a=find(EEG1==1);
+b=find(MRI1==1);
+t=zeros(16,1);
+b=[b;t];
+r=[];
+for i=1:length(a)
+d=a(i,:);
+e=b(i,:);
+%pause
+c=isequal(d,e);
+if c==1
+    r=vertcat(r,1);
+else
+    r=vertcat(r,0);
+end
+end
+p=find(r==1);
+p1=a(p);
+p2=Delivery_status1(p1);
+[m n]=size(p2);
+p3=find(p2==0);
+[m1 n1]=size(p3);
+perc11=(m1/m)*100;
+disp(strcat('Normal Delivery EEG&MRI 1 1 --',int2str(perc11),'%'))
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+a=find(EEG1==0);
+b=find(MRI1==0);
+t=zeros(16,1);
+a=[a;t];
+r=[];
+for i=1:length(a)
+d=a(i,:);
+e=b(i,:);
+%pause
+c=isequal(d,e);
+if c==1
+    r=vertcat(r,1);
+else
+    r=vertcat(r,0);
+end
+end
+p=find(r==1);
+p1=a(p);
+p2=Delivery_status1(p1);
+[m n]=size(p2);
+p3=find(p2==0);
+[m1 n1]=size(p3);
+perc00=(m1/m)*100;
+disp(strcat('Normal Delivery EEG&MRI 0 0 --',int2str(perc00),'%'))
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+re=[];
+for i=1:length(EEG1)
+   a1=EEG1(i,:);
+   b1=MRI1(i,:);
+   c=[0 1];
+   d=[a1 b1];
+   e=isequal(c,d);
+   if e==1
+     re=vertcat(re,1);
+   else
+       re=vertcat(re,0);
+   end 
+end
+r=find(re==1);
+   p2=Delivery_status1(r);
+[m n]=size(p2);
+p3=find(p2==0);
+[m1 n1]=size(p3);
+perc01=(m1/m)*100;
+disp(strcat('Normal Delivery EEG&MRI 0 1 --',int2str(perc01),'%'))
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+re=[];
+for i=1:length(EEG1)
+   a1=EEG1(i,:);
+   b1=MRI1(i,:);
+   c=[1 0];
+   d=[a1 b1];
+   e=isequal(c,d);
+   if e==1
+     re=vertcat(re,1);
+   else
+       re=vertcat(re,0);
+   end 
+end
+r=find(re==1);
+   p2=Delivery_status1(r);
+[m n]=size(p2);
+p3=find(p2==0);
+[m1 n1]=size(p3);
+perc10=(m1/m)*100;
+disp(strcat('Normal Delivery EEG&MRI 1 0 --',int2str(perc10),'%'))
+perc_norm=[perc00,perc01,perc10,perc11];
+perc_cea=[(100-perc00),(100-perc01),(100-perc10),(100-perc11)];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ages={'EEG & MRI : 0 0','EEG & MRI : 0 1','EEG & MRI : 1 0','EEG & MRI : 1 1'};
+grpn={'NORMAL','CEASAERIN'};
+ tabfig= figure('name','Comparision table','numbertitle','off','Position',[200 200 850 300]);
+            dat = [perc_norm(:) perc_cea(:)];       uitable('Parent',tabfig,'Data',dat,'ColumnName',grpn,'RowName',ages,'ColumnWidth',{100},'Position',[20 20 800 250]);
+end
+ if ip==3
+     system_dependent('DirChangeHandleWarn','never');
+addpath(genpath('.'))
+drugnames={'PHENYTOIN','CARBAMAZEPINE','CLOBAZAM','SODIUMVALPORATE',...
+    'LAMOTRIGEN','PHENOBARBITONE','ZONISAMIDE','OXCARBAMAZEPINE','LEVETIRACETAM',...
+    'CARMAZEPINE','CARMAZ','LEVATOM'};
+ drug=xlsread('GOODPREGNANCY1.xlsx','M2:M189');
+ bbstatus=xlsread('GOODPREGNANCY1.xlsx','S2:S189');
+ Aftr1status=xlsread('GOODPREGNANCY1.xlsx','T2:T189');
+ Aftr5status=xlsread('GOODPREGNANCY1.xlsx','U2:U189');
+ data1=[drug,bbstatus];
+fitn=[];
+abn1=[];
+for i=1:12
+ data2=data1(:,1);
+ a=find(data2==i);
+ a1=data1(a,:);
+ size(a);
+[m n]=size(a1);
+b=a1(:,2);
+b1=find(b==0);
+b2=find(b==1);
+[m1 n1]=size(b1);
+[m2 n2]=size(b2);
+percn=(m1/m)*100; 
+percn1=(m2/m)*100;
+string=drugnames(:,i);
+str={' Fit Free percentage is : '};
+str1={' Abnormal percentage is : '};
+disp(strcat(string,str,num2str(percn)));
+disp(strcat(string,str1,num2str(percn1)));
+
+%disp(strcat(string,str,num2str(perc))) ;
+%disp(strcat(string,str1,num2str(perc1)));
+abn1=vertcat(abn1,percn1);
+fitn=vertcat(fitn,percn);
+end
+ grpn={'Normal','Abnormal'};
+ tabfig= figure('name','Born baby status table','numbertitle','off','Position',[200 200 850 300]);
+            dat = [fitn(:) abn1(:)];
+            uitable('Parent',tabfig,'Data',dat,'ColumnName',grpn,'RowName',drugnames,'ColumnWidth',{100},'Position',[20 20 800 250]);
+ end
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% After 1 year
+if ip==4
+    drug=xlsread('GOODPREGNANCY1.xlsx','M2:M189');
+ Aftr1status=xlsread('GOODPREGNANCY1.xlsx','T2:T189');
+ drugnames={'PHENYTOIN','CARBAMAZEPINE','CLOBAZAM','SODIUMVALPORATE',...
+    'LAMOTRIGEN','PHENOBARBITONE','ZONISAMIDE','OXCARBAMAZEPINE','LEVETIRACETAM',...
+    'CARMAZEPINE','CARMAZ','LEVATOM'};
+data1=[drug,Aftr1status];
+fit1=[];
+ab11=[];
+for i=1:12
+ data2=data1(:,1);
+ a=find(data2==i);
+ a1=data1(a,:);
+ size(a);
+[m n]=size(a1);
+b=a1(:,2);
+b1=find(b==0);
+b2=find(b==1);
+[m1 n1]=size(b1);
+[m2 n2]=size(b2);
+perc1=(m1/m)*100; 
+perc11=(m2/m)*100;
+string=drugnames(:,i);
+str={' Fit Free percentage is : '};
+str1={' Abnormal percentage is : '};
+disp(strcat(string,str,num2str(perc1)));
+disp(strcat(string,str1,num2str(perc11)));
+ab11=vertcat(ab11,perc11);
+fit1=vertcat(fit1,perc1);
+end
+ grpn={'Normal','Abnormal'};
+ tabfig= figure('name','After 1 year baby status table','numbertitle','off','Position',[200 200 850 300]);
+            dat = [fit1(:) ab11(:)];
+            uitable('Parent',tabfig,'Data',dat,'ColumnName',grpn,'RowName',drugnames,'ColumnWidth',{100},'Position',[20 20 800 250]);
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% After 5 year 
+if ip==5
+    drug=xlsread('GOODPREGNANCY1.xlsx','M2:M189');
+ Aftr5status=xlsread('GOODPREGNANCY1.xlsx','U2:U189');
+drugnames={'PHENYTOIN','CARBAMAZEPINE','CLOBAZAM','SODIUMVALPORATE',...
+    'LAMOTRIGEN','PHENOBARBITONE','ZONISAMIDE','OXCARBAMAZEPINE','LEVETIRACETAM',...
+    'CARMAZEPINE','CARMAZ','LEVATOM'};
+data1=[drug,Aftr5status];
+fit5=[];
+ab51=[];
+for i=1:12
+ data2=data1(:,1);
+ a=find(data2==i);
+ a1=data1(a,:);
+ size(a);
+[m n]=size(a1);
+b=a1(:,2);
+b1=find(b==0);
+b2=find(b==1);
+[m1 n1]=size(b1);
+[m2 n2]=size(b2);
+perc5=(m1/m)*100; 
+perc51=(m2/m)*100;
+string=drugnames(:,i);
+str={' Fit Free percentage is : '};
+str1={' Abnormal percentage is : '};
+disp(strcat(string,str,num2str(perc5))) ;
+disp(strcat(string,str1,num2str(perc51)));
+ab51=vertcat(ab51,perc51);
+fit5=vertcat(fit5,perc5);
+end
+ grpn={'Normal','Abnormal'};
+ tabfig= figure('name','After 5 year baby status table','numbertitle','off','Position',[200 200 850 300]);
+            dat = [fit5(:) ab51(:)];         uitable('Parent',tabfig,'Data',dat,'ColumnName',grpn,'RowName',drugnames,'ColumnWidth',{100},'Position',[20 20 800 250]);
+
+ end
+ if ip==6
+     drugnames={'PHENYTOIN','CARBAMAZEPINE','CLOBAZAM','SODIUMVALPORATE',...
+    'LAMOTRIGEN','PHENOBARBITONE','ZONISAMIDE','OXCARBAMAZEPINE','LEVETIRACETAM',...
+    'CARMAZEPINE','CARMAZ','LEVATOM'};
+fit=[];
+ab=[];
+for i=1:12
+     a=fitn(i,:);b=fit1(i,:);c=fit5(i,:);
+     d=a+b+c;
+     e=(d/300)*100;
+     a1=abn1(i,:);b1=ab11(i,:);c1=ab51(i,:);
+     d1=a1+b1+c1;
+     e1=(d1/300)*100;
+     ab=vertcat(ab,e1);
+fit=vertcat(fit,e);
+     
+ end
+ 
+ 
+ grpn={'Good for Use','Bad for Use'};
+ tabfig= figure('name','Monotheraphy AED table','numbertitle','off','Position',[200 200 850 300]);
+            dat = [fit(:) ab(:)];          uitable('Parent',tabfig,'Data',dat,'ColumnName',grpn,'RowName',drugnames,'ColumnWidth',{100},'Position',[20 20 800 250]);
+            fit=fit';
+            ab=ab';
+fi=[0 0 0 0 0 0 0 0 0 0 0 0;fit;0 0 0 0 0 0 0 0 0 0 0 0];
+figure('name','Monotheraphy AED good for use comparison','numbertitle','off')
+bar(fi)
+axis([1,3,10,105])
+set(gca,'xticklabel',{'','',''})
+xlabel('Drugs')
+ylabel('Values in %')
+legend('PHENYTOIN','CARBAMAZEPINE','CLOBAZAM','SODIUMVALPORATE',...
+    'LAMOTRIGEN','PHENOBARBITONE','ZONISAMIDE','OXCARBAMAZEPINE','LEVETIRACETAM',...
+    'CARMAZEPINE','CARMAZ','LEVATOM','location','best')
+fi=[0 0 0 0 0 0 0 0 0 0 0 0;ab;0 0 0 0 0 0 0 0 0 0 0 0];
+figure('name','Monotheraphy AED Bad for use comparison','numbertitle','off')
+bar(fi)
+axis([1,3,10,105])
+set(gca,'xticklabel',{'','',''})
+xlabel('Drugs')
+ylabel('Values in %')
+legend('PHENYTOIN','CARBAMAZEPINE','CLOBAZAM','SODIUMVALPORATE',...
+    'LAMOTRIGEN','PHENOBARBITONE','ZONISAMIDE','OXCARBAMAZEPINE','LEVETIRACETAM',...
+    'CARMAZEPINE','CARMAZ','LEVATOM','location','best')
+ end 
+end
